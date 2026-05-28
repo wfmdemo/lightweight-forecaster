@@ -49,6 +49,45 @@ st.markdown(
         box-shadow: 7px 7px 0 var(--ink);
         padding: 10px;
     }
+    div[data-testid="stMetric"] * {
+        color: var(--ink) !important;
+    }
+    div[data-testid="stMetric"] label {
+        font-weight: 900 !important;
+        opacity: .82 !important;
+    }
+    div[data-testid="stMetricValue"] {
+        font-weight: 900 !important;
+    }
+    .kpi-card {
+        border: 5px solid var(--ink);
+        border-radius: 22px;
+        background: #FFFFFF;
+        box-shadow: 8px 8px 0 var(--ink);
+        padding: 22px 24px;
+        min-height: 128px;
+    }
+    .kpi-label {
+        color: var(--ink);
+        font-size: 16px;
+        font-weight: 900;
+        opacity: .76;
+        margin-bottom: 14px;
+    }
+    .kpi-value {
+        color: var(--ink);
+        font-size: 44px;
+        line-height: 1;
+        font-weight: 900;
+        white-space: nowrap;
+    }
+    div[data-testid="stPlotlyChart"] {
+        border: 5px solid var(--ink);
+        border-radius: 24px;
+        background: #FFFFFF;
+        box-shadow: 8px 8px 0 var(--ink);
+        padding: 12px;
+    }
     .brand-card {
         border: 5px solid var(--ink);
         border-radius: 28px;
@@ -321,10 +360,11 @@ def make_plot(history: pd.Series, forecast_frame: pd.DataFrame, metric_label: st
             y=history.values,
             mode="lines+markers",
             name="Historical",
-            line=dict(color="#171717", width=4),
+            line=dict(color="#000000", width=5),
+            marker=dict(color="#000000", size=8),
         )
     )
-    colors = ["#2F80ED", "#F4C542", "#76E4B8", "#C94C35", "#C9B6FF", "#FF7043"]
+    colors = ["#2F80ED", "#F4C542", "#007C72", "#C94C35", "#6F57D9", "#FF7043"]
     for i, column in enumerate(forecast_frame.columns):
         fig.add_trace(
             go.Scatter(
@@ -333,18 +373,42 @@ def make_plot(history: pd.Series, forecast_frame: pd.DataFrame, metric_label: st
                 mode="lines+markers",
                 name=column,
                 line=dict(color=colors[i % len(colors)], width=3),
+                marker=dict(size=7),
             )
         )
     fig.update_layout(
         template="plotly_white",
         height=560,
-        margin=dict(l=30, r=30, t=40, b=30),
+        margin=dict(l=55, r=35, t=96, b=48),
+        paper_bgcolor="#FFFFFF",
+        plot_bgcolor="#FFFFFF",
+        font=dict(color="#171717", family="Arial, sans-serif", size=14),
         title=f"Historical vs Forecast: {metric_label}",
-        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="left", x=0),
+        title_font=dict(color="#171717", size=24),
+        legend=dict(
+            orientation="h",
+            yanchor="bottom",
+            y=1.08,
+            xanchor="left",
+            x=0,
+            font=dict(color="#171717", size=13),
+        ),
     )
-    fig.update_xaxes(showgrid=True, gridcolor="#DED8CC")
-    fig.update_yaxes(showgrid=True, gridcolor="#DED8CC")
+    fig.update_xaxes(showgrid=True, gridcolor="#DED8CC", linecolor="#171717")
+    fig.update_yaxes(showgrid=True, gridcolor="#DED8CC", linecolor="#171717")
     return fig
+
+
+def kpi_card(label: str, value: str) -> None:
+    st.markdown(
+        f"""
+        <div class="kpi-card">
+            <div class="kpi-label">{label}</div>
+            <div class="kpi-value">{value}</div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
 
 
 def render_template_download() -> None:
@@ -462,12 +526,16 @@ for warning in forecast_warnings:
 metric_label = "Contacts" if metric == "contacts" else "AHT Minutes"
 
 summary = st.columns(4)
-summary[0].metric("Historical Periods", f"{len(series):,}")
-summary[1].metric("Latest Actual", f"{series.iloc[-1]:,.1f}")
-summary[2].metric("Historical Avg", f"{series.mean():,.1f}")
-summary[3].metric("Forecast Horizon", f"{int(horizon)} {cadence_label.lower()} periods")
+with summary[0]:
+    kpi_card("Historical Periods", f"{len(series):,}")
+with summary[1]:
+    kpi_card("Latest Actual", f"{series.iloc[-1]:,.1f}")
+with summary[2]:
+    kpi_card("Historical Avg", f"{series.mean():,.1f}")
+with summary[3]:
+    kpi_card("Forecast Horizon", f"{int(horizon)}")
 
-st.plotly_chart(make_plot(series, forecast_frame, metric_label), use_container_width=True)
+st.plotly_chart(make_plot(series, forecast_frame, metric_label), use_container_width=True, theme=None)
 
 with st.expander("Prepared Data"):
     st.dataframe(grouped_df, use_container_width=True)
